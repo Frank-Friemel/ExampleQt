@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #ifndef _WIN32
-#include <cstring.h>
+#include <cstring>
 #endif
 
 #include "definitions.h"
