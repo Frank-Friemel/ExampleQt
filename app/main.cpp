@@ -6,6 +6,10 @@
 #include <stdint.h>
 #include <assert.h>
 
+#ifndef _WIN32
+#include <cstring.h>
+#endif
+
 #include "definitions.h"
 #include "version.h"
 
