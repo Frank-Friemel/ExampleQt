@@ -13,6 +13,11 @@
 #include "definitions.h"
 #include "version.h"
 
+#include "MainDlg.h"
+
+#include <QApplication>
+#include <QMessageBox>
+
 using namespace std;
 using namespace literals;
 
@@ -66,6 +71,52 @@ int main(int argc, char* argv[])
 
     setlocale(LC_ALL, "C");
 
-    printf("Hello World: %s %s\n", PROJECT_NAME, PROJECT_VERSION);
-    return 0;
+    int result = -1;
+    unique_ptr<QApplication> app;
+
+    try
+    {
+        // we have to create the app-object here
+        // because QT has to get to know the "main thread"        
+        app = make_unique<QApplication>(argc, argv);
+
+        // create GUI
+        MainDlg mainDialog(strConfigName);
+
+        // QT best practices:
+        // https://de.slideshare.net/slideshow/how-to-make-your-qt-app-look-native/2622616
+        mainDialog.show();
+
+        // enter the main loop (which blocks)
+        result = app->exec();
+    }
+    catch (bad_alloc)
+    {
+        // no message box without having QT initialized, sorry
+        if (app)
+        {
+            QMessageBox msgBox;
+            msgBox.setText("The system is out of memory.");
+            msgBox.addButton("Close", QMessageBox::AcceptRole);
+            msgBox.setIcon(QMessageBox::Critical);
+            msgBox.exec();
+        }
+    }
+    catch (const runtime_error& e)
+    {
+        // no message box without having QT initialized, sorry
+        if (app)
+        {
+            QMessageBox msgBox;
+
+            msgBox.setText(e.what());
+            msgBox.setIcon(QMessageBox::Critical);
+            msgBox.exec();
+        }
+    }
+
+    // teardown
+    app.reset();
+
+    return result;
 }
