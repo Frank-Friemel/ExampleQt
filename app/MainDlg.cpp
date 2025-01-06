@@ -14,15 +14,23 @@
 
 #include "version.h"
 #include "definitions.h"
+#include "localization/StringIDs.h"
+#include <spdlog/spdlog.h>
 
 using namespace std;
 using namespace literals;
 
-MainDlg::MainDlg(const std::string& configName)
-    : m_strConfigName{ configName }
+MainDlg::MainDlg(const SharedPtr<IValueCollection>& config, const std::string& configName)
+    : m_config{ config }
+    , m_strConfigName{ configName }
+    , m_iconApplication{ ":/Application.ico" }
+
 {
     // create signal/slot connections
     connect(this, &MainDlg::ShowMessage, this, &MainDlg::OnShowMessage);
+
+    setWindowIcon(QIcon(":/Application.png"));
+    setWindowTitle(QString::fromUtf8(PROJECT_NAME));
 
     // create menu and widgets
     CreateMenuBar();
@@ -33,29 +41,45 @@ MainDlg::MainDlg(const std::string& configName)
 
     setLayout(mainLayout);
     mainLayout->setParent(this);
+
+    auto geometry = VariantValue::Key("WindowGeometry").TryGet<vector<BYTE>>(m_config);
+
+    // restore Window Geometry
+    if (geometry.has_value())
+    {
+        const auto geometryBlob = std::move(geometry.value());
+
+        const QByteArray geo((const char*)geometryBlob.data(), geometryBlob.size());
+        restoreGeometry(geo);
+    }
 }
 
 MainDlg::~MainDlg()
 {
 }
 
+QString MainDlg::GetString(int id) const
+{
+    return GetLanguageManager(m_config)->GetString(id).c_str();
+}
+
 void MainDlg::CreateMenuBar()
 {
     m_menuBar = new QMenuBar;
 
-    QPointer<QMenu> fileMenu = new QMenu(QString::fromUtf8("&File"s), this);
+    QPointer<QMenu> fileMenu = new QMenu(GetString(StringID::MENU_FILE), this);
 
-    const auto strQuit = QString::fromUtf8("&Quit"s);
+    const auto strQuit = GetString(StringID::MENU_QUIT);
 
 #ifdef Q_OS_WIN
     const QKeySequence quitShortcutSequence(QKeySequence::StandardKey::Close);
 #else
     const QKeySequence quitShortcutSequence(QKeySequence::StandardKey::Quit);
 #endif
-    fileMenu->addAction(strQuit, this, &MainDlg::OnQuit, quitShortcutSequence);
+    fileMenu->addAction(QIcon(":/exit-16.ico"), strQuit, this, &MainDlg::OnQuit, quitShortcutSequence);
 
-    QPointer<QMenu> helpMenu = new QMenu(QString::fromUtf8("&Help"s), this);
-    helpMenu->addAction(QString::fromUtf8("&About..."s), this, &MainDlg::OnAbout);
+    QPointer<QMenu> helpMenu = new QMenu(GetString(StringID::MENU_HELP), this);
+    helpMenu->addAction(QIcon(":/info-16.ico"), GetString(StringID::MENU_ABOUT), this, &MainDlg::OnAbout);
 
     m_menuBar->addMenu(fileMenu);
     m_menuBar->addMenu(helpMenu);
@@ -70,7 +94,20 @@ void MainDlg::OnQuit()
 // Widget override: the dialog is closing -> end/shtutdown
 void MainDlg::closeEvent(QCloseEvent* event)
 {
+    try
+    {
+        const QByteArray geometry = saveGeometry();
 
+        if (!geometry.isEmpty())
+        {
+            const auto blob = MakeShared<BlobStream>(geometry.size(), geometry.data());
+            VariantValue::Key("WindowGeometry").Set(m_config, blob);
+        }
+    }
+    catch (...)
+    {
+        spdlog::error("failed to save geometry");
+    }
     QWidget::closeEvent(event);
 }
 
@@ -84,10 +121,10 @@ void MainDlg::OnAbout()
 {
     QPointer<QDialog> dlg = new QDialog(this);
 
-    dlg->setWindowTitle(QString::fromUtf8("About"s));
+    dlg->setWindowTitle(GetString(StringID::DIALOG_ABOUT));
 
     QPointer<QVBoxLayout> groupLayout = new QVBoxLayout;
-    QPointer<QPushButton> closeButton = new QPushButton(QString::fromUtf8("Close"s));
+    QPointer<QPushButton> closeButton = new QPushButton(GetString(StringID::CLOSE));
 
     closeButton->setDefault(true);
     closeButton->setSizePolicy(QSizePolicy::Policy::Fixed, QSizePolicy::Policy::Fixed);

@@ -1,0 +1,10 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource>
+        <file>Application.png</file>
+        <file>Application.ico</file>
+        <file>settings-16.ico</file>
+        <file>exit-16.ico</file>
+        <file>info-16.ico</file>
+    </qresource>
+</RCC>

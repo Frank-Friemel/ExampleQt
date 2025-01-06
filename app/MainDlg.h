@@ -24,6 +24,8 @@
 #include <chrono>
 #include <stdint.h>
 
+#include <LayerCake.h>
+
 //
 // based on Qt example: https://doc.qt.io/qt-6/qtwidgets-layouts-basiclayouts-example.html
 //
@@ -33,11 +35,12 @@ class MainDlg
     Q_OBJECT
 
 public:
-    MainDlg(const std::string& configName);
+    MainDlg(const SharedPtr<IValueCollection>& config, const std::string& configName);
     ~MainDlg();
 
 private:
-    void CreateMenuBar();
+    void    CreateMenuBar();
+    QString GetString(int id) const;
 
 protected:
     // QWidget overrides
@@ -52,7 +55,9 @@ private slots:
     void OnAbout();
 
 private:
+    const SharedPtr<IValueCollection>  	m_config;
     const std::string                   m_strConfigName;
+    const QIcon                         m_iconApplication;
 
     // Qt Widgets
     // Menu
