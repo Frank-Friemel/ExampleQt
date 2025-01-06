@@ -26,43 +26,26 @@ jobs:
     # VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-         submodules: true
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
 
-    - uses: lukka/get-cmake@latest
-  
-     - name: Restore from cache and setup vcpkg executable and data files.
+      - uses: lukka/get-cmake@latest
+
+      - name: Restore from cache and setup vcpkg executable and data files.
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: 'vcpkg.json'
 
-    - name: Set reusable strings
-      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
-      id: strings
-      shell: bash
-      run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT" &&
-        echo "repo-name=`basename ${{ github.repository }}`" >> $GITHUB_OUTPUT
-        
-    - name: Set up Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: '6.8.1'
-        
-    - name: Run CMake+vcpkg+Ninja+CTest to build packages and generate/build/test the code.
+      # Note: if the preset misses the "configuration", it is possible to explicitly select the
+      # configuration with the additional `--config` flag, e.g.:
+      #   buildPreset: 'ninja-vcpkg'
+      #   buildPresetAdditionalArgs: "[`--config`, `Release`]"
+      #   testPreset: 'ninja-vcpkg'
+      #   testPresetAdditionalArgs: "[`--config`, `Release`]"
+      - name: Run CMake+vcpkg+Ninja+CTest to build packages and generate/build/test the code.
         uses: lukka/run-cmake@v10
         with:
           configurePreset: 'ninja-multi-vcpkg'
           buildPreset: 'ninja-vcpkg-release'
           testPreset: 'test-release'
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ steps.strings.outputs.repo-name }}-${{ matrix.os }}
-        path: |
-            build/${{ steps.strings.outputs.repo-name }}
-            build/Release/${{ steps.strings.outputs.repo-name }}.exe
-        retention-days: 4
-        if-no-files-found: ignore
